@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chat App</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      #messages {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      #messages li {
+        padding: 8px;
+        margin-bottom: 2px;
+      }
+      .message-left {
+        text-align: left;
+        background-color: #e1f5fe;
+      }
+      .message-right {
+        text-align: right;
+        background-color: #c8e6c9;
+      }
+      #form {
+        margin-top: 20px;
+      }
+      input,
+      button {
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input
+        id="username"
+        placeholder="Enter your username"
+        autocomplete="off"
+      /><br />
+      <input
+        id="input"
+        placeholder="Type a message"
+        autocomplete="off"
+      /><button>Send</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      let isUserJoined = false;
+
+      const form = document.getElementById('form');
+      const input = document.getElementById('input');
+      const usernameInput = document.getElementById('username');
+      const messages = document.getElementById('messages');
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = usernameInput.value.trim();
+        const message = input.value.trim();
+        if (username && message) {
+          if (!socket.username) {
+            socket.emit('user join', username);
+            socket.username = username;
+          }
+          socket.emit('chat message', message);
+          input.value = '';
+        }
+      });
+
+      socket.on('chat message', (data) => {
+        const item = document.createElement('li');
+        item.textContent = `${data.user}: ${data.message}`;
+        item.classList.add(
+          data.user === socket.username ? 'message-right' : 'message-left'
+        );
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      socket.on('user joined', (username) => {
+        if (!isUserJoined) {
+          const item = document.createElement('li');
+          item.textContent = `${username} joined the chat`;
+          item.classList.add('message-left');
+          messages.appendChild(item);
+          window.scrollTo(0, document.body.scrollHeight);
+          isUserJoined = true;
+        }
+      });
+
+      socket.on('user left', (username) => {
+        const item = document.createElement('li');
+        item.textContent = `${username} left the chat`;
+        item.classList.add('message-left');
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      socket.on('broadcast message', (message) => {
+        const item = document.createElement('li');
+        item.textContent = `Broadcast: ${message}`;
+        item.classList.add('message-left');
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+    </script>
+  </body>
+</html>
